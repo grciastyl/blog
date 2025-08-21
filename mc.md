@@ -30,3 +30,15 @@ author = models.ForeignKey(
 
 
 The get_user_model() you eill get it from: from django.contrib.auth import get_user_model
+
+
+# Mini Challenge 3 - PostCreateView
+STR:
+1. Inside of posts/views.py create the class PostCreateView that inherits from CreateView (the generic class)
+2. Remember to fill the following attributes: {template_name, fields, model}
+3. On fields I only want to display the: title, subtitle, body and status
+4. Create the url that's going to handle that view
+5. Add the form into the templates/posts/new.html and make it crispy!
+5. 1. Don't forget about csrf security
+6. Add a new li inside of the navbar.html
+

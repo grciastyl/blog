@@ -1,8 +1,17 @@
 from django.shortcuts import render
 from django.views.generic import (
-    ListView
+    ListView,
+    CreateView,
+    DetailView,
+    DeleteView,
+    UpdateView
 )
 from .models import Post, Status
+from django.urls import reverse_lazy
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin,
+    UserPassesTestMixin
+)
 
 # Create your views here.
 class PostListView(ListView):
@@ -13,3 +22,59 @@ class PostListView(ListView):
     def get_queryset(self):
         status = Status.objects.get(name="published")
         return Post.objects.filter(status=status).order_by("created_on").reverse()
+
+class PostCreateView(CreateView):
+    template_name = "post/new.html"
+    model = Post
+    fields = ["title", "subtitle", "body", "status"]
+
+    def form_valid(self, form):
+        # Automatically set the author to the current user
+        form.instance.author = self.request.user
+        return super().form_valid(form) # super() calls the parent class's form_valid method to save the form and redirect
+
+class PostDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    template_name = "post/details.html"
+    model = Post
+    context_object_name = "single_post"
+
+    def test_func(self):
+        post = self.get_object()
+        if post.status.name == "archived":
+            if self.request.user.is_authenticated:
+                return True
+        elif post.status.name == "draft":
+            if self.request.user.is_authenticated:
+                return self.request.user == post.author
+            return False
+        else:
+            return True
+        
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        selected_post = self.object
+        status = Status.objects.get(name="published")
+        context['prev_post'] = Post.objects.filter(id__lt=selected_post.id)\
+                                           .filter(status=status)\
+                                           .order_by('-created_on')\
+                                           .first()
+        context['next_post'] = Post.objects.filter(id__gt=selected_post.id)\
+                                           .filter(status=status)\
+                                           .order_by('created_on')\
+                                           .first()
+        return context
+
+class PostDeleteView(DeleteView):
+    template_name = "post/details.html"
+    model = Post
+    success_url = reverse_lazy("post_list")
+
+class PostUpdateView(UpdateView):
+    template_name = "post/edit.html"
+    model = Post
+    fields = ["title", "subtitle", "body", "status"]
+
+
+
+
